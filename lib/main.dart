@@ -3,6 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:markdown_widget/markdown_widget.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'dart:math';
+import 'dart:math' as math;
+
+class QuestionRecord {
+  final int timestamp;
+  final String question;
+  final int messageIndex;
+
+  QuestionRecord({
+    required this.timestamp,
+    required this.question,
+    required this.messageIndex,
+  });
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +61,7 @@ class ChatPageState extends State<ChatPage> {
   final ScrollController _scrollController = ScrollController();
   final List<Map<String, String>> _messages = [];
   InAppWebViewController? webViewController;
+  final List<QuestionRecord> _questionHistory = [];
 
   String _getPlotlyHtml(String jsonData) {
     return '''
@@ -249,9 +263,17 @@ This chart shows a simple data series with line and markers.
     if (_controller.text.isEmpty) return;
 
     setState(() {
-      // 添加用户消息
+      // Store the question in history
+      _questionHistory.add(
+        QuestionRecord(
+          timestamp: DateTime.now().millisecondsSinceEpoch,
+          question: _controller.text,
+          messageIndex: _messages.length,
+        ),
+      );
+
+      // Add messages as before
       _messages.add({'sender': 'user', 'text': _controller.text});
-      // 添加 AI 回复
       _messages.add({
         'sender': 'ai',
         'text': _fakeResponses[Random().nextInt(_fakeResponses.length)],
@@ -259,8 +281,10 @@ This chart shows a simple data series with line and markers.
     });
 
     _controller.clear();
+    _scrollToBottom();
+  }
 
-    // 滚动到列表底部
+  void _scrollToBottom() {
     Future.delayed(Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -272,10 +296,80 @@ This chart shows a simple data series with line and markers.
     });
   }
 
+  void _scrollToMessage(int index) {
+    if (_scrollController.hasClients) {
+      final screenHeight = MediaQuery.of(context).size.height;
+      final messagePosition = index * 100.0; // Approximate message height
+      final scrollPosition =
+          messagePosition - (screenHeight / 2) + 100.0; // Center message
+
+      _scrollController.animateTo(
+        math.max(0, scrollPosition), // Prevent negative scroll position
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Chat with AI')),
+      appBar: AppBar(
+        title: Text('Chat with AI'),
+        actions: [
+          Padding(
+            padding: EdgeInsets.only(right: 16.0),
+            child: Builder(
+              builder:
+                  (BuildContext context) => IconButton(
+                    icon: Icon(Icons.history),
+                    onPressed: () => Scaffold.of(context).openEndDrawer(),
+                    tooltip: 'Question History',
+                  ),
+            ),
+          ),
+        ],
+      ),
+      endDrawer: Drawer(
+        child: Column(
+          children: [
+            DrawerHeader(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.history, size: 48),
+                  SizedBox(height: 8),
+                  Text('Question History'),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _questionHistory.length,
+                itemBuilder: (context, index) {
+                  final record = _questionHistory[index];
+                  return ListTile(
+                    title: Text(
+                      record.question,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      DateTime.fromMillisecondsSinceEpoch(
+                        record.timestamp,
+                      ).toString().substring(0, 16),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context); // Close drawer
+                      _scrollToMessage(record.messageIndex);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
       body: Column(
         children: [
           Expanded(
