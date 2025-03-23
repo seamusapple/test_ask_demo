@@ -350,7 +350,7 @@ This chart shows a simple data series with line and markers.
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    Theme.of(context);
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -396,82 +396,7 @@ This chart shows a simple data series with line and markers.
                   }
                 });
 
-                return Padding(
-                  padding: EdgeInsets.only(
-                    top: 8.0,
-                    bottom: 8.0,
-                    left: isUser ? 48.0 : 0,
-                    right: isUser ? 0 : 48.0,
-                  ),
-                  child: Row(
-                    mainAxisAlignment:
-                        isUser
-                            ? MainAxisAlignment.end
-                            : MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (!isUser) _buildAvatar(false),
-                      if (!isUser) SizedBox(width: 8),
-                      Flexible(
-                        child: Column(
-                          crossAxisAlignment:
-                              isUser
-                                  ? CrossAxisAlignment.end
-                                  : CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              key: _messageKeys[index],
-                              padding: EdgeInsets.all(12.0),
-                              decoration: BoxDecoration(
-                                color:
-                                    isUser
-                                        ? theme.colorScheme.primary.withOpacity(
-                                          0.1,
-                                        )
-                                        : Colors.white,
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(isUser ? 16 : 4),
-                                  topRight: Radius.circular(isUser ? 4 : 16),
-                                  bottomLeft: Radius.circular(16),
-                                  bottomRight: Radius.circular(16),
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 4,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: _buildMessageContent(
-                                message['text']!,
-                                isUser,
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.only(
-                                top: 4.0,
-                                left: 4.0,
-                                right: 4.0,
-                              ),
-                              child: Text(
-                                _formatTimestamp(
-                                  DateTime.now(),
-                                ), // Use the formatted timestamp
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (isUser) SizedBox(width: 8),
-                      if (isUser) _buildAvatar(true),
-                    ],
-                  ),
-                );
+                return _buildMessageItem(context, index, isUser, message);
               },
             ),
           ),
@@ -690,5 +615,120 @@ This chart shows a simple data series with line and markers.
             ],
           ),
         );
+  }
+
+  Widget _buildMessageItem(
+    BuildContext context,
+    int index,
+    bool isUser,
+    Map<String, String> message,
+  ) {
+    final theme = Theme.of(context);
+    final Color shadowColor = theme.shadowColor;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        top: 8.0,
+        bottom: 8.0,
+        left: isUser ? 64.0 : 0,
+        right: isUser ? 0 : 64.0,
+      ),
+      child: Row(
+        mainAxisAlignment:
+            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!isUser) _buildAvatar(false),
+          if (!isUser) SizedBox(width: 8),
+          Flexible(
+            child: Column(
+              crossAxisAlignment:
+                  isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                Container(
+                  key: _messageKeys[index],
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 12.0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isUser ? Colors.blue.shade50 : Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(isUser ? 16 : 4),
+                      topRight: Radius.circular(isUser ? 4 : 16),
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: shadowColor.withOpacity(
+                          0.05,
+                        ), // Use theme's shadowColor
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: _buildMessageContent(message['text']!, isUser),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: 4.0,
+                    left: 4.0,
+                    right: 4.0,
+                    bottom: 8.0,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _formatTimestamp(DateTime.now()),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      if (!isUser) // Only show buttons for AI responses
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.thumb_up_alt_outlined, size: 16),
+                              tooltip: 'Good response',
+                              onPressed: () {
+                                // Handle good response action
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.thumb_down_alt_outlined,
+                                size: 16,
+                              ),
+                              tooltip: 'Bad response',
+                              onPressed: () {
+                                // Handle bad response action
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.download_outlined, size: 16),
+                              tooltip: 'Download',
+                              onPressed: () {
+                                // Handle download action
+                              },
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isUser) SizedBox(width: 8),
+          if (isUser) _buildAvatar(true),
+        ],
+      ),
+    );
   }
 }
