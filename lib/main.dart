@@ -62,6 +62,18 @@ class ChatPageState extends State<ChatPage> {
   final List<Map<String, String>> _messages = [];
   InAppWebViewController? webViewController;
   final List<QuestionRecord> _questionHistory = [];
+  final List<GlobalKey> _messageKeys = [];
+  final List<double> _messageHeights = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize keys and heights for existing messages
+    _messageKeys.addAll(
+      List.generate(_messages.length, (index) => GlobalKey()),
+    );
+    _messageHeights.addAll(List.generate(_messages.length, (index) => 0.0));
+  }
 
   String _getPlotlyHtml(String jsonData) {
     return '''
@@ -278,6 +290,12 @@ This chart shows a simple data series with line and markers.
         'sender': 'ai',
         'text': _fakeResponses[Random().nextInt(_fakeResponses.length)],
       });
+
+      // Add two keys and heights for both messages
+      _messageKeys.add(GlobalKey());
+      _messageKeys.add(GlobalKey());
+      _messageHeights.add(0.0);
+      _messageHeights.add(0.0);
     });
 
     _controller.clear();
@@ -297,14 +315,20 @@ This chart shows a simple data series with line and markers.
   }
 
   void _scrollToMessage(int index) {
-    if (_scrollController.hasClients) {
+    if (_scrollController.hasClients &&
+        index >= 0 &&
+        index < _messages.length) {
+      double scrollPosition = 0;
+      for (int i = 0; i < index; i++) {
+        scrollPosition += _messageHeights[i];
+      }
+
       final screenHeight = MediaQuery.of(context).size.height;
-      final messagePosition = index * 100.0; // Approximate message height
-      final scrollPosition =
-          messagePosition - (screenHeight / 2) + 100.0; // Center message
+      scrollPosition =
+          scrollPosition - (screenHeight / 2) + (_messageHeights[index] / 2);
 
       _scrollController.animateTo(
-        math.max(0, scrollPosition), // Prevent negative scroll position
+        math.max(0, scrollPosition),
         duration: Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
@@ -380,10 +404,28 @@ This chart shows a simple data series with line and markers.
               itemBuilder: (context, index) {
                 final message = _messages[index];
                 final isUser = message['sender'] == 'user';
+
+                // Measure message height
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (index < _messageKeys.length &&
+                      _messageKeys[index].currentContext != null) {
+                    final RenderBox box =
+                        _messageKeys[index].currentContext!.findRenderObject()
+                            as RenderBox;
+                    final height = box.size.height;
+                    if (_messageHeights[index] != height) {
+                      setState(() {
+                        _messageHeights[index] = height;
+                      });
+                    }
+                  }
+                });
+
                 return Align(
                   alignment:
                       isUser ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
+                    key: _messageKeys[index],
                     margin: const EdgeInsets.symmetric(vertical: 4.0),
                     padding: const EdgeInsets.all(12.0),
                     constraints: BoxConstraints(
