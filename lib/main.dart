@@ -343,6 +343,11 @@ This chart shows a simple data series with line and markers.
     }
   }
 
+  String _formatTimestamp(DateTime time) {
+    return "${time.year}-${time.month.toString().padLeft(2, '0')}-${time.day.toString().padLeft(2, '0')} "
+        "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:${time.second.toString().padLeft(2, '0')}";
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -450,7 +455,9 @@ This chart shows a simple data series with line and markers.
                                 right: 4.0,
                               ),
                               child: Text(
-                                DateTime.now().toString().substring(11, 16),
+                                _formatTimestamp(
+                                  DateTime.now(),
+                                ), // Use the formatted timestamp
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: Colors.grey[600],
@@ -573,9 +580,9 @@ This chart shows a simple data series with line and markers.
                     overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text(
-                    DateTime.fromMillisecondsSinceEpoch(
-                      record.timestamp,
-                    ).toString().substring(0, 16),
+                    _formatTimestamp(
+                      DateTime.fromMillisecondsSinceEpoch(record.timestamp),
+                    ), // Use the formatted timestamp
                   ),
                   onTap: () {
                     Navigator.pop(context); // Close drawer
