@@ -429,7 +429,7 @@ This chart shows a simple data series with line and markers.
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.1),
             offset: Offset(0, -1),
             blurRadius: 4,
           ),
@@ -661,8 +661,8 @@ This chart shows a simple data series with line and markers.
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: shadowColor.withOpacity(
-                          0.05,
+                        color: shadowColor.withValues(
+                          alpha: 0.1,
                         ), // Use theme's shadowColor
                         blurRadius: 4,
                         offset: Offset(0, 2),
