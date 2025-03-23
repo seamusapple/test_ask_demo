@@ -44,7 +44,15 @@ class MyApp extends StatelessWidget {
       title: 'Chat with AI',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.light,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 1,
+        ),
       ),
       home: ChatPage(),
     );
@@ -337,15 +345,21 @@ This chart shows a simple data series with line and markers.
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text('Chat with AI'),
+        title: Text(
+          'Chat with AI',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         actions: [
           Padding(
             padding: EdgeInsets.only(right: 16.0),
             child: Builder(
               builder:
-                  (BuildContext context) => IconButton(
+                  (context) => IconButton(
                     icon: Icon(Icons.history),
                     onPressed: () => Scaffold.of(context).openEndDrawer(),
                     tooltip: 'Question History',
@@ -354,119 +368,234 @@ This chart shows a simple data series with line and markers.
           ),
         ],
       ),
-      endDrawer: Drawer(
-        child: Column(
-          children: [
-            DrawerHeader(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.history, size: 48),
-                  SizedBox(height: 8),
-                  Text('Question History'),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _questionHistory.length,
-                itemBuilder: (context, index) {
-                  final record = _questionHistory[index];
-                  return ListTile(
-                    title: Text(
-                      record.question,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      DateTime.fromMillisecondsSinceEpoch(
-                        record.timestamp,
-                      ).toString().substring(0, 16),
-                    ),
-                    onTap: () {
-                      Navigator.pop(context); // Close drawer
-                      _scrollToMessage(record.messageIndex);
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
+      endDrawer: _buildHistoryDrawer(),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.all(8.0),
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 final message = _messages[index];
                 final isUser = message['sender'] == 'user';
 
-                // Measure message height
+                // Keep height measurement logic
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (index < _messageKeys.length &&
                       _messageKeys[index].currentContext != null) {
                     final RenderBox box =
                         _messageKeys[index].currentContext!.findRenderObject()
                             as RenderBox;
-                    final height = box.size.height;
-                    if (_messageHeights[index] != height) {
-                      setState(() {
-                        _messageHeights[index] = height;
-                      });
-                    }
+                    _updateMessageHeight(index, box.size.height);
                   }
                 });
 
-                return Align(
-                  alignment:
-                      isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    key: _messageKeys[index],
-                    margin: const EdgeInsets.symmetric(vertical: 4.0),
-                    padding: const EdgeInsets.all(12.0),
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isUser ? Colors.blue[100] : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    child: _buildMessageContent(message['text']!, isUser),
+                return Padding(
+                  padding: EdgeInsets.only(
+                    top: 8.0,
+                    bottom: 8.0,
+                    left: isUser ? 48.0 : 0,
+                    right: isUser ? 0 : 48.0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment:
+                        isUser
+                            ? MainAxisAlignment.end
+                            : MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (!isUser) _buildAvatar(false),
+                      if (!isUser) SizedBox(width: 8),
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment:
+                              isUser
+                                  ? CrossAxisAlignment.end
+                                  : CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              key: _messageKeys[index],
+                              padding: EdgeInsets.all(12.0),
+                              decoration: BoxDecoration(
+                                color:
+                                    isUser
+                                        ? theme.colorScheme.primary.withOpacity(
+                                          0.1,
+                                        )
+                                        : Colors.white,
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(isUser ? 16 : 4),
+                                  topRight: Radius.circular(isUser ? 4 : 16),
+                                  bottomLeft: Radius.circular(16),
+                                  bottomRight: Radius.circular(16),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: _buildMessageContent(
+                                message['text']!,
+                                isUser,
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(
+                                top: 4.0,
+                                left: 4.0,
+                                right: 4.0,
+                              ),
+                              child: Text(
+                                DateTime.now().toString().substring(11, 16),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isUser) SizedBox(width: 8),
+                      if (isUser) _buildAvatar(true),
+                    ],
                   ),
                 );
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: InputDecoration(
-                      labelText: 'Enter your question',
-                      border: OutlineInputBorder(),
-                    ),
-                    onSubmitted: (text) {
-                      if (text.isNotEmpty) {
-                        _sendMessage();
-                      }
-                    },
-                  ),
+          _buildInputArea(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatar(bool isUser) {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: isUser ? Colors.blue[100] : Colors.grey[200],
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        isUser ? Icons.person : Icons.android,
+        size: 16,
+        color: isUser ? Colors.blue[900] : Colors.grey[800],
+      ),
+    );
+  }
+
+  Widget _buildInputArea() {
+    return Container(
+      padding: EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            offset: Offset(0, -1),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(24.0),
                 ),
-                SizedBox(width: 8),
-                ElevatedButton(onPressed: _sendMessage, child: Text('Send')),
+                child: TextField(
+                  controller: _controller,
+                  decoration: InputDecoration(
+                    hintText: 'Type your message...',
+                    hintStyle: TextStyle(color: Colors.grey[600]),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16.0,
+                      vertical: 12.0,
+                    ),
+                  ),
+                  onSubmitted: (text) {
+                    if (text.isNotEmpty) _sendMessage();
+                  },
+                ),
+              ),
+            ),
+            SizedBox(width: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: _sendMessage,
+                icon: Icon(Icons.send, color: Colors.white, size: 20),
+                padding: EdgeInsets.all(12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistoryDrawer() {
+    return Drawer(
+      child: Column(
+        children: [
+          DrawerHeader(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.history, size: 48),
+                SizedBox(height: 8),
+                Text('Question History'),
               ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _questionHistory.length,
+              itemBuilder: (context, index) {
+                final record = _questionHistory[index];
+                return ListTile(
+                  title: Text(
+                    record.question,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    DateTime.fromMillisecondsSinceEpoch(
+                      record.timestamp,
+                    ).toString().substring(0, 16),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close drawer
+                    _scrollToMessage(record.messageIndex);
+                  },
+                );
+              },
             ),
           ),
         ],
       ),
     );
+  }
+
+  void _updateMessageHeight(int index, double height) {
+    if (_messageHeights[index] != height) {
+      setState(() {
+        _messageHeights[index] = height;
+      });
+    }
   }
 
   Widget _buildPlotly(String jsonData) {
